@@ -1,3 +1,5 @@
+import inspect
+from typing import get_type_hints
 from abc import ABC
 from functools import wraps
 
@@ -44,10 +46,6 @@ def get_http_method(method_name):
         return "Unknown"
 
 
-import inspect
-from typing import get_type_hints
-
-
 class ActionRunner:
     def __init__(self, action_pack_instance):
         self.action_pack = action_pack_instance
@@ -75,7 +73,7 @@ class ActionRunner:
                         {
                             "name": param_name,
                             "in": "query",  # Assume query for simplicity; this might need refinement
-                            "description": param_description,
+                            "description": param_description or "",
                             "required": param.default is inspect.Parameter.empty,
                             "schema": {
                                 "type": "string"  # Simplified; real implementation would map Python types to OpenAPI types
@@ -86,6 +84,8 @@ class ActionRunner:
                 http_method = (
                     "get"  # Default to GET; refine this based on method_name prefix
                 )
+                if method_name.startswith("get_"):
+                    http_method = "get"
                 if method_name.startswith("post_"):
                     http_method = "post"
                 elif method_name.startswith("delete_"):
@@ -93,7 +93,7 @@ class ActionRunner:
 
                 actions[method_name] = {
                     "summary": docstring.split("\n")[0] if docstring else "",
-                    "description": docstring,
+                    "description": docstring or "",
                     "operationId": method_name,
                     "parameters": parameters,
                     "responses": {  # This is a simplification; actual response schemas depend on method return types
@@ -103,7 +103,31 @@ class ActionRunner:
                         http_method.upper()
                     ],  # Tagging with HTTP method for grouping
                 }
-        return actions
+
+        # Convert to OpenAPI specification
+        openapi_spec = {
+            "openapi": "3.0.0",
+            "info": {
+                "title": self.action_pack.__class__.__name__ + " API",
+                "version": "1.0.0",
+                "description": f"API for {self.action_pack.__class__.__name__}",
+            },
+            "paths": {},
+        }
+
+        for endpoint, details in actions.items():
+            path = f"/{endpoint}"  # Assuming endpoint names are to be used as paths
+            openapi_spec["paths"][path] = {
+                "get": {  # Assuming all are GET operations
+                    "tags": details["tags"],
+                    "summary": details.get("summary", ""),
+                    "description": details.get("description", ""),
+                    "operationId": details["operationId"],
+                    "parameters": details["parameters"],
+                    "responses": details["responses"],
+                }
+            }
+        return openapi_spec
 
     def run_action(self, action_name, *args, **kwargs):
         if action_name not in self.get_actions():
