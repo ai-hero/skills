@@ -105,12 +105,13 @@ class ActionRunner:
                     )
 
                 http_method = "POST"
-
                 actions[method_name] = {
-                    "summary": parsed_docstring.short_description
+                    "summary": parsed_docstring.short_description or ""
                     if parsed_docstring
                     else "",
                     "description": parsed_docstring.long_description
+                    or parsed_docstring.short_description
+                    or ""
                     if parsed_docstring
                     else "",
                     "operationId": method_name,
@@ -134,25 +135,44 @@ class ActionRunner:
         openapi_spec = {
             "openapi": "3.0.0",
             "info": {
-                "title": self.action_pack.__class__.__name__ + " API",
+                "title": f"{self.action_pack.__class__.__name__} API",
                 "version": "1.0.0",
                 "description": f"API for {self.action_pack.__class__.__name__}",
             },
             "paths": {},
+            "components": {
+                "schemas": {},  # Define your schemas here if needed
+                "responses": {},  # Define reusable responses here if needed
+                "parameters": {},  # Define reusable parameters here if needed
+                "securitySchemes": {},  # Define security schemes here if needed
+            },
+            "tags": [],  # Define your tags here if needed
         }
 
+        START_PATH = "/api"  # Define your API base path here
+
         for endpoint, details in actions.items():
+            http_method = "post"  # Ensure method names are lowercase for OpenAPI 3.0
             path = f"{START_PATH}/{self.action_pack.__class__.__name__}/{endpoint}"
-            openapi_spec["paths"][path] = {
-                http_method: {
-                    "tags": details["tags"],
-                    "summary": details.get("summary", ""),
-                    "description": details.get("description", ""),
-                    "operationId": details["operationId"],
-                    "parameters": details["parameters"],
-                    "responses": details["responses"],
-                }
+
+            # Ensure the path exists in the specification
+            if path not in openapi_spec["paths"]:
+                openapi_spec["paths"][path] = {}
+
+            # Define the operation object for the method
+            openapi_spec["paths"][path][http_method] = {
+                "tags": details["tags"],
+                "summary": details.get("summary", ""),
+                "description": details.get("description", ""),
+                "operationId": details["operationId"],
+                "parameters": details.get("parameters", []),
+                "responses": details.get("responses", {}),
             }
+
+            # This is a simplified example. You may need to adjust or expand this code
+            # to handle requestBody for POST, PUT, PATCH methods, and to include security,
+            # servers, or other OpenAPI components as required for your API.
+
         return openapi_spec
 
     def run_action(self, action_name, data):
