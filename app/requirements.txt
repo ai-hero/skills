@@ -1,0 +1,18 @@
+pytest
+pylint
+falcon
+uvicorn[standard] # ASGI
+gevent # WSGI
+httpx
+gunicorn
+minio
+redis
+redis
+pymongo
+pyjwt
+pylint
+python-dateutil
+validators
+bcrypt
+openai
+docstring_parser

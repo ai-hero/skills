@@ -1,6 +1,6 @@
 from ..schema import ActionPack, auth, secure
 from pydantic import BaseModel, Field
-import requests
+import httpx
 
 
 class Coordinates(BaseModel):
@@ -43,26 +43,40 @@ class WeatherSummary(BaseModel):
     visibility: int = Field(..., description="Visibility in meters")
 
 
-@auth(keys=["OPENWEATHERMAP_API_KEY"])
+@auth(keys=["X-Key-OpenWeatherMap-API"])
 class OpenWeatherMap(ActionPack):
+    """OpenWeatherMap API actions."""
+
     @secure
     def get_current_weather(self, city_name: str) -> WeatherSummary:
+        """
+        Get current weather for a city.
+        :param city_name: Name of the city
+        :return: WeatherSummary
+        """
         lat, lon = self.get_lat_lon(city_name)
-        api_key = self.auth["OPENWEATHERMAP_API_KEY"]
+        api_key = self.auth["X-Key-OpenWeatherMap-API"]
         base_url = "http://api.openweathermap.org/data/2.5/weather?"
         complete_url = f"{base_url}appid={api_key}&lat={lat}&lon={lon}"
-        response = requests.get(complete_url)
+        # Changed from requests.get() to httpx.get()
+        response = httpx.get(complete_url)
         return response.json()
 
     @secure
     def get_lat_lon(self, city_name: str) -> Coordinates:
+        """
+        Get latitude and longitude for a city.
+        :param city_name: Name of the city
+        :return: Coordinates
+        """
         # TODO: Improve geocoding
-        api_key = self.auth["OPENWEATHERMAP_API_KEY"]
+        api_key = self.auth["X-Key-OpenWeatherMap-API"]
 
         base_url = "http://api.openweathermap.org/data/2.5/weather?"
         complete_url = f"{base_url}q={city_name}&appid={api_key}"
 
-        response = requests.get(complete_url)
+        # Changed from requests.get() to httpx.get()
+        response = httpx.get(complete_url)
         data = response.json()
 
         if data["cod"] != 200:

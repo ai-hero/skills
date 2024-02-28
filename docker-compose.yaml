@@ -1,0 +1,15 @@
+version: "3.8"
+services:
+  skills:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    networks:
+      - ai-hero
+
+networks:
+  ai-hero:
+    external: true
